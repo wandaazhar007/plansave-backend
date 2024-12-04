@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { connectDB } from "../config/dbConfig.js";
+import { connectDB } from "../config/DbConfig.js";
 
 const db = await connectDB();
 

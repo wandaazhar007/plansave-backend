@@ -1,4 +1,4 @@
-import { connectDB } from "../config/dbConfig.js";
+import { connectDB } from "../config/DBConfig.js";
 
 const db = await connectDB();
 
