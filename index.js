@@ -1,11 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB } from "./config/dbConfig.js";
+import { connectDB } from "./config/DbConfig.js";
+import authRoutes from "./routes/AuthRoutes.js";
+import budgetRoutes from "./routes/BudgetRoutes.js";
+import transactionRoutes from "./routes/TransactionRoutes.js";
 
 // Load environment variables
 dotenv.config();
 
+// Create an instance of Express
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -25,8 +29,19 @@ app.use(express.json());
 })();
 
 // Routes
+app.use("/auth", authRoutes); // Authentication routes
+app.use("/budgets", budgetRoutes); // Budget management routes
+app.use("/transactions", transactionRoutes); // Transaction management routes
+
+// Root endpoint
 app.get("/", (req, res) => {
-  res.send("plansave backend is running!");
+  res.send("Plansave backend is running!");
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send({ message: "Something went wrong!", error: err.message });
 });
 
 // Start the server
