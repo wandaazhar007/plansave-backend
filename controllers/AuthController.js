@@ -77,3 +77,14 @@ export const login = async (req, res) => {
     res.status(500).send({ message: "Error logging in", error: err.message });
   }
 };
+
+export const logout = async (req, res) => {
+  try {
+    // Clear the JWT token from cookies
+    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "Strict" });
+    res.status(200).send({ message: "Logout successful" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Error logging out", error: err.message });
+  }
+};
