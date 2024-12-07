@@ -4,9 +4,9 @@ import { getBudgets, addBudget } from "../controllers/BudgetController.js";
 const router = express.Router();
 
 // Get all budgets for the user
-router.get("/", getBudgets);
+router.get("/api/budgets", getBudgets);
 
 // Add a new budget
-router.post("/", addBudget);
+router.post("/api/budgets", addBudget);
 
 export default router;
