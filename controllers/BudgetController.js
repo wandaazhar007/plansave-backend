@@ -2,16 +2,52 @@ import { connectDB } from "../config/DbConfig.js";
 
 const db = await connectDB();
 
+// export const getBudgets = async (req, res) => {
+//   const userId = req.user.id;
+
+//   try {
+//     const [rows] = await db.execute("SELECT * FROM budgets WHERE user_id = ?", [userId]);
+
+//     res.status(200).send(rows);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send({ message: "Error retrieving budgets", error: err.message });
+//   }
+// };
+
 export const getBudgets = async (req, res) => {
   const userId = req.user.id;
-  // console.log('user id: ', req.user.id);
+  const { page = 1, limit = 10 } = req.query;
 
   try {
-    const [rows] = await db.execute("SELECT * FROM budgets WHERE user_id = ?", [userId]);
+    // Parse limit and offset
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt((page - 1) * parsedLimit, 10);
 
-    res.status(200).send(rows);
+    // Debugging logs
+    // console.log("Query: SELECT * FROM budgets WHERE user_id = ? LIMIT ? OFFSET ?");
+    // console.log("Parameters: ", [userId, parsedLimit, parsedOffset]);
+
+    // Ensure valid parameters
+    if (isNaN(parsedLimit) || isNaN(parsedOffset)) {
+      return res.status(400).send({ message: "Invalid pagination parameters" });
+    }
+
+    // Execute query
+    // const [rows] = await db.execute(
+    //   "SELECT * FROM budgets WHERE user_id = ? LIMIT ? OFFSET ?",
+    //   [userId, parsedLimit, parsedOffset]
+    // );
+
+    const query = `SELECT * FROM budgets WHERE user_id = ${userId} LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
+    const [rows] = await db.execute(query);
+
+    // console.log("Query Result: ", rows);
+
+    // Send response
+    res.status(200).send({ budgets: rows });
   } catch (err) {
-    console.error(err);
+    console.error("Error executing query: ", err.message);
     res.status(500).send({ message: "Error retrieving budgets", error: err.message });
   }
 };
@@ -77,5 +113,30 @@ export const deleteBudget = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send({ message: "Error deleting budget", error: err.message });
+  }
+};
+
+export const searchBudget = async (req, res) => {
+  const { keyword } = req.query; // Get the keyword from the query parameters
+  const userId = req.user.id; // Get the user ID from the authenticated request
+
+  try {
+    // Search for budgets where the category or subcategory matches the keyword
+    const [rows] = await db.execute(
+      `SELECT * FROM budgets 
+       WHERE user_id = ? 
+       AND (category LIKE ? OR subcategory LIKE ?)`,
+      [userId, `%${keyword}%`, `%${keyword}%`]
+    );
+
+    // If no results, return a 404 response
+    if (rows.length === 0) {
+      return res.status(404).send({ message: "No budgets found matching your search." });
+    }
+
+    res.status(200).send(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Error searching budgets", error: err.message });
   }
 };

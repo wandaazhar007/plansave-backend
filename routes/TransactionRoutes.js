@@ -4,7 +4,7 @@ import { getTransactions, addTransaction } from "../controllers/TransactionContr
 const router = express.Router();
 
 // Get all transactions for the user
-router.get("/", getTransactions);
+router.get("/api/transactions", getTransactions);
 
 // Add a new transaction
 router.post("/", addTransaction);

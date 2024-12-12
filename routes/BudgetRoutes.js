@@ -1,5 +1,5 @@
 import express from "express";
-import { getBudgets, addBudget, editBudget, deleteBudget } from "../controllers/BudgetController.js";
+import { getBudgets, addBudget, editBudget, deleteBudget, searchBudget } from "../controllers/BudgetController.js";
 import { authenticateToken } from "../middlewares/AuthMiddleware.js";
 
 const router = express.Router();
@@ -15,5 +15,8 @@ router.put("/api/budgets/:id", authenticateToken, editBudget);
 
 // Delete a budget
 router.delete("/api/budgets/:id", authenticateToken, deleteBudget);
+
+//Search budgets
+router.get("/api/budgets/search", authenticateToken, searchBudget);
 
 export default router;
