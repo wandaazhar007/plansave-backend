@@ -117,24 +117,52 @@ export const deleteBudget = async (req, res) => {
 };
 
 export const searchBudget = async (req, res) => {
-  const { keyword } = req.query; // Get the keyword from the query parameters
+  const { keyword, page = 1, limit = 10 } = req.query; // Get the keyword, page, and limit from the query parameters
   const userId = req.user.id; // Get the user ID from the authenticated request
 
   try {
+    // Parse pagination parameters
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt((page - 1) * parsedLimit, 10);
+
+    // Validate pagination parameters
+    if (isNaN(parsedLimit) || isNaN(parsedOffset)) {
+      return res.status(400).send({ message: "Invalid pagination parameters" });
+    }
+
     // Search for budgets where the category or subcategory matches the keyword
     const [rows] = await db.execute(
       `SELECT * FROM budgets 
+             WHERE user_id = ? 
+             AND (category LIKE ? OR subcategory LIKE ?)`,
+      [userId, `%${keyword}%`, `%${keyword}%`]
+    );
+
+    // Get total count for pagination
+    const [totalCountResult] = await db.execute(
+      `SELECT COUNT(*) as total FROM budgets 
        WHERE user_id = ? 
        AND (category LIKE ? OR subcategory LIKE ?)`,
       [userId, `%${keyword}%`, `%${keyword}%`]
     );
+
+    const totalCount = totalCountResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / parsedLimit);
+    const hasMore = page < totalPages;
 
     // If no results, return a 404 response
     if (rows.length === 0) {
       return res.status(404).send({ message: "No budgets found matching your search." });
     }
 
-    res.status(200).send(rows);
+    // Send response with pagination details
+    res.status(200).send({
+      budgets: rows,
+      currentPage: parseInt(page, 10),
+      totalPages,
+      totalResults: totalCount,
+      hasMore,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send({ message: "Error searching budgets", error: err.message });
