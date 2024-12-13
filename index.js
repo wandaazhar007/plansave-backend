@@ -16,12 +16,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse incoming JSON
-app.use(fileUpload()); // Enable file uploads
 app.use(express.urlencoded({ extended: true }));
 // app.use(cors({ credentials: true, origin: ['http://localhost:2002', 'http://localhost:3000', 'https://plansave.com'] }));
 // app.use(cors({ credentials: true, origin: "*" }));
+app.use(cors()); // Enable CORS
+app.use(express.json()); // Parse incoming JSON
+app.use(fileUpload()); // Enable file uploads
 app.use(cors({ credentials: true, origin: '*' }));
 app.use(helmet()); // Security headers
 

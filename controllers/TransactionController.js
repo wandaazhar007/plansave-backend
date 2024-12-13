@@ -79,6 +79,42 @@ export const addTransaction = async (req, res) => {
   }
 };
 
+
+export const editTransaction = async (req, res) => {
+  const { id } = req.params; // Get the transaction ID from the URL params
+  const { budget_id, amount, description, date } = req.body; // Get updated fields from the request body
+  const userId = req.user.id; // Ensure the user is editing their own transaction
+
+  try {
+    // Validate that the required fields exist
+    if (!id || !budget_id || !amount || !description || !date) {
+      return res.status(400).send({ message: "All fields are required" });
+    }
+
+    // Check if the transaction exists and belongs to the user
+    const [transaction] = await db.execute(
+      "SELECT * FROM transactions WHERE id = ? AND user_id = ?",
+      [id, userId]
+    );
+
+    if (transaction.length === 0) {
+      return res.status(404).send({ message: "Transaction not found or not authorized" });
+    }
+
+    // Update the transaction
+    await db.execute(
+      "UPDATE transactions SET budget_id = ?, amount = ?, description = ?, date = ?, updated_at = NOW() WHERE id = ? AND user_id = ?",
+      [budget_id, amount, description, date, id, userId]
+    );
+
+    res.status(200).send({ message: "Transaction updated successfully" });
+  } catch (err) {
+    console.error("Error updating transaction:", err.message);
+    res.status(500).send({ message: "Error updating transaction", error: err.message });
+  }
+};
+
+
 export const deleteTransaction = async (req, res) => {
   const { id } = req.params; // Get the transaction ID from the URL params
   const userId = req.user.id; // Ensure the user is deleting their own transaction
