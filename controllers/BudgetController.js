@@ -130,21 +130,27 @@ export const searchBudget = async (req, res) => {
       return res.status(400).send({ message: "Invalid pagination parameters" });
     }
 
-    // Search for budgets where the category or subcategory matches the keyword
-    const [rows] = await db.execute(
-      `SELECT * FROM budgets 
-             WHERE user_id = ? 
-             AND (category LIKE ? OR subcategory LIKE ?)`,
-      [userId, `%${keyword}%`, `%${keyword}%`]
-    );
+    // Sanitize inputs
+    const sanitizedKeyword = `%${keyword.replace(/['"]/g, "")}%`;
+
+    // Construct the query directly with variables
+    const query = `
+      SELECT * FROM budgets 
+      WHERE user_id = ${userId} 
+      AND (category LIKE '%${sanitizedKeyword}%' OR subcategory LIKE '%${sanitizedKeyword}%')
+      LIMIT ${parsedLimit} OFFSET ${parsedOffset}
+    `;
+
+    // Search for budgets matching the keyword
+    const [rows] = await db.execute(query);
 
     // Get total count for pagination
-    const [totalCountResult] = await db.execute(
-      `SELECT COUNT(*) as total FROM budgets 
-       WHERE user_id = ? 
-       AND (category LIKE ? OR subcategory LIKE ?)`,
-      [userId, `%${keyword}%`, `%${keyword}%`]
-    );
+    const totalQuery = `
+      SELECT COUNT(*) as total FROM budgets 
+      WHERE user_id = ${userId} 
+      AND (category LIKE '%${keyword}%' OR subcategory LIKE '%${keyword}%')
+    `;
+    const [totalCountResult] = await db.execute(totalQuery);
 
     const totalCount = totalCountResult[0]?.total || 0;
     const totalPages = Math.ceil(totalCount / parsedLimit);

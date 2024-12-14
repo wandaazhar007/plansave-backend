@@ -55,6 +55,8 @@ export const getTransactions = async (req, res) => {
 };
 
 
+
+
 export const addTransaction = async (req, res) => {
   const { budget_id, amount, descriptions, date } = req.body; // Notice the key names matching your Postman request
   const userId = req.user.id;
@@ -78,6 +80,8 @@ export const addTransaction = async (req, res) => {
     res.status(500).send({ message: "Error adding transaction", error: err.message });
   }
 };
+
+
 
 
 export const editTransaction = async (req, res) => {
@@ -115,6 +119,8 @@ export const editTransaction = async (req, res) => {
 };
 
 
+
+
 export const deleteTransaction = async (req, res) => {
   const { id } = req.params; // Get the transaction ID from the URL params
   const userId = req.user.id; // Ensure the user is deleting their own transaction
@@ -142,5 +148,74 @@ export const deleteTransaction = async (req, res) => {
   } catch (err) {
     console.error("Error deleting transaction:", err.message);
     res.status(500).send({ message: "Error deleting transaction", error: err.message });
+  }
+};
+
+
+
+export const searchTransaction = async (req, res) => {
+  const { keyword = "", page = 1, limit = 10 } = req.query;
+  const userId = req.user.id;
+
+  try {
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt((page - 1) * parsedLimit, 10);
+
+    // Validate inputs
+    if (!keyword) {
+      return res.status(400).send({ message: "Keyword is required" });
+    }
+
+    if (isNaN(parsedLimit) || isNaN(parsedOffset) || parsedLimit < 1 || parsedOffset < 0) {
+      return res.status(400).send({ message: "Invalid pagination parameters" });
+    }
+
+    // Sanitize inputs
+    const sanitizedKeyword = `%${keyword.replace(/['"]/g, "")}%`;
+
+    // Debugging
+    console.log("Query Parameters:", {
+      userId,
+      sanitizedKeyword,
+      parsedLimit,
+      parsedOffset,
+    });
+
+    // Fetch transactions
+    const transactionsQuery = `
+      SELECT * FROM transactions
+      WHERE user_id = ${userId}
+      AND (description LIKE '${sanitizedKeyword}' OR CAST(amount AS CHAR) LIKE '${sanitizedKeyword}')
+      ORDER BY date DESC
+      LIMIT ${parsedLimit} OFFSET ${parsedOffset}`;
+
+    const [transactions] = await db.execute(transactionsQuery);
+
+    // Count total results
+    const countQuery = `
+      SELECT COUNT(*) AS total FROM transactions
+      WHERE user_id = ${userId}
+      AND (description LIKE '${sanitizedKeyword}' OR CAST(amount AS CHAR) LIKE '${sanitizedKeyword}')`;
+
+    const [totalResult] = await db.execute(countQuery);
+
+    const totalTransactions = totalResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalTransactions / parsedLimit);
+    const hasMore = page < totalPages;
+
+    // Send response
+    res.status(200).send({
+      transactions,
+      currentPage: parseInt(page, 10),
+      totalPages,
+      totalResults: totalTransactions,
+      hasMore,
+    });
+  } catch (err) {
+    console.error("Error searching transactions:", err.message);
+    res.status(500).send({
+      message: "Error searching transactions",
+      error: err.message,
+    });
   }
 };
